@@ -7,7 +7,7 @@ import re
 app = Flask(__name__)
 
 app.config['MYSQL_HOST'] = 'api1219.mysql.database.azure.com'
-app.config['MYSQL_USER'] = 'Asuna1219'
+app.config['MYSQL_USER'] = 'Asuna1219@api1219'
 app.config['MYSQL_PASSWORD'] = 'Asuna2001'
 app.config['MYSQL_DB'] = 'USER'
 
