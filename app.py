@@ -3,8 +3,11 @@ from flask_mysqldb import MySQL
 import MySQLdb.cursors
 import re
 
-
 app = Flask(__name__)
+
+app.secret_key = 'super secret key'
+app.config['SESSION_TYPE'] = 'filesystem'
+
 
 app.config['MYSQL_HOST'] = 'api1219.mysql.database.azure.com'
 app.config['MYSQL_USER'] = 'Asuna1219@api1219'
@@ -65,5 +68,4 @@ def register():
 	return render_template('register.html', msg = msg)
 
 if __name__ == '__main__':
-    app.secret_key = 'mykey'
     app.run(debug=True)
