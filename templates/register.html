@@ -2,7 +2,7 @@
 	<head>
 		<meta charset="UTF-8">
 		<title> Register </title>
-		<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">			
+		<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">	
 	</head>
 	<body></br></br></br></br></br>
 		<div align="center">
@@ -11,7 +11,7 @@
 				<h1 class="word">Register</h1>
 			</div></br></br></br>
 			<h2 class="word">
-				<form action="{{ url_for('register') }}" method="post">
+				<form action="/generate" method="post">
 				<div class="msg">{{ msg }}</div>
 					<input id="username" name="username" type="text" placeholder="Enter Your Username" class="textbox"/></br></br>
 					<input id="phonenumber" name="phonenumber" type="text" placeholder="Enter Your PhoneNumber" class="textbox"/></br></br>
