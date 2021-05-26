@@ -1,26 +1,23 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash,json
 from flask_mysqldb import MySQL
+from datetime import datetime
 import MySQLdb.cursors
 import re
 import os
 import uuid
+import random
 
 app = Flask(__name__)
 
-app.secret_key = 'super secret key'
-app.config['SESSION_TYPE'] = 'filesystem'
-
+app.secret_key = os.urandom(24)
+app.config['SESSION_TYPE'] = os.urandom(24)
 app.config['MYSQL_HOST'] = 'api1219.mysql.database.azure.com'
 app.config['MYSQL_USER'] = 'Asuna1219@api1219'
 app.config['MYSQL_PASSWORD'] = 'Asuna2001'
-app.config['MYSQL_DB'] = 'USER'
+app.config['MYSQL_DB'] = 'user'
+app.config['UPLOAD_FOLDER'] = 'static/Uploads'
 
 mysql = MySQL(app)
-app.config['UPLOAD_FOLDER'] = 'static/Uploads'
-ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
-def allowed_file(filename):
-	return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-	
 
 @app.route('/')
 @app.route('/login', methods =['GET', 'POST'])
@@ -30,15 +27,16 @@ def login():
 		username = request.form['username']
 		number = request.form['phonenumber']
 		cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-		cursor.execute('SELECT * FROM user WHERE username = %s AND phonenumber = %s', (username, number))
+		cursor.execute('SELECT * FROM user WHERE name = %s AND phonenumber = %s', (username, number,))
 		account = cursor.fetchone()
 		if account:
 			session['loggedin'] = True
-			session['username'] = account['username']
+			session['name'] = account['name']
+			session['number'] = account['phonenumber']
 			msg = 'Logged in successfully !'
-			return render_template('userHome.html', msg = msg)
+			return render_template('addWish.html', msg = msg)
 		else:
-			msg = 'Incorrect username / password !'
+			msg = 'Incorrect Name / PhoneNumber!'
 	return render_template('login.html', msg = msg)
 
 @app.route('/logout')
@@ -55,7 +53,7 @@ def register():
 		number = request.form['phonenumber']
 		email = request.form['email']
 		cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-		cursor.execute('SELECT * FROM user WHERE username = % s', (username, ))
+		cursor.execute('SELECT * FROM user WHERE name = % s', (username, ))
 		account = cursor.fetchone()
 		if account:
 			msg = 'Account already exists !'
@@ -66,7 +64,7 @@ def register():
 		elif not username or not number or not email:
 			msg = 'Please fill out the form !'
 		else:
-			cursor.execute('INSERT INTO user VALUES (%s, %s, %s)', (username, number, email))
+			cursor.execute('INSERT INTO user.user VALUES (%s, %s, %s)', (username, number, email))
 			mysql.connection.commit()
 			msg = 'You have successfully registered !'
 	elif request.method == 'POST':
@@ -89,24 +87,23 @@ def upload():
 
 
 @app.route('/addWish',methods=['GET','POST'])
-def add():
-	return render_template('addWish.html')
 def addWish():
-		if request.method == 'POST' and 'inputTitle' in request.form and 'inputDescription' in request.form:
-			_title = request.form['inputTitle']
-			_description = request.form['inputDescription']
-			_user = session.get('user')
-			datetime = os.datetime.now
-			cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-			cursor.execute('INSERT INTO tbl_post VALUES (%s, %s, %s, %s)', (_title, _description, _user, datetime))
-			mysql.connection.commit()
-			mysql.connection.close()
-			msg=''
-			msg='Published successfully!'
-			return redirect('/userHome',msg=msg)
+	msg = ''
+	if request.method == 'POST' and 'inputTitle' in request.form and 'inputDescription' in request.form:
+		title = request.form['inputTitle']
+		description = request.form['inputDescription']
+		user = session.get('name')
+		post_id = os.urandom(24)
+		cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+		cursor.execute('INSERT INTO tbl_blog VALUES (%s, %s, %s, %s, %s)', (post_id,title, description, user,datetime ))
+		mysql.connection.commit()
+		return redirect('/userHome')
         
-		else:
-			return render_template('error.html',error = 'An error occurred!')
+	elif request.method=='POST':
+		return render_template('error.html',error = 'An error occurred!')
+		
+	else:
+		return render_template('addWish.html',msg=msg)
 
 if __name__ == '__main__':
 	app.run(debug=True)
