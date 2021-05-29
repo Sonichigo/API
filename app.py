@@ -20,8 +20,12 @@ app.config['MYSQL_DB'] = 'user'
 app.config['UPLOAD_FOLDER'] = 'static/Uploads'
 
 mysql = MySQL(app)
-
+user_id = os.urandom(24)
+post_user_id = user_id
 @app.route('/')
+def index():
+	return render_template('index.html')
+
 @app.route('/login', methods =['GET', 'POST'])
 def login():
 	msg = ''
@@ -36,10 +40,12 @@ def login():
 			session['name'] = account['name']
 			session['number'] = account['phonenumber']
 			msg = 'Logged in successfully !'
-			return render_template('addWish.html', msg = msg)
+			return render_template('userHome.html', msg = msg)
 		else:
 			msg = 'Incorrect Name / PhoneNumber!'
-	return render_template('login.html', msg = msg)
+			return render_template('login.html', msg = msg)
+	else:
+		return render_template('login.html')
 
 @app.route('/logout')
 def logout():
@@ -58,7 +64,6 @@ def register():
 		username = request.form['username']
 		number = request.form['phonenumber']
 		email = request.form['email']
-		user_id = os.urandom(24)
 		cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 		cursor.execute('SELECT * FROM user WHERE name = % s', (username, ))
 		account = cursor.fetchone()
@@ -71,14 +76,14 @@ def register():
 		elif not username or not number or not email:
 			msg = 'Please fill out the form !'
 		else:
-			cursor.execute('INSERT INTO user.user VALUES (%s, %s, %s, %s)', (user_id,username, number, email, ))
+			cursor.execute('INSERT INTO user.user VALUES (%s, %s, %s, %s)', (user,username, number, email, ))
 			mysql.connection.commit()
 			msg = 'You have successfully registered !'
 	elif request.method == 'POST':
 		msg = 'Please fill out the form !'
 	return render_template('register.html', msg = msg)
 	
-@app.route('/userHome')
+@app.route('/userHome', methods=['GET', 'POST'])
 def userHome():
         return render_template('userHome.html')
 
@@ -92,11 +97,13 @@ def upload():
 		return json.dumps({'filename':f_name})
 
 @app.route('/addPage',methods=['GET','POST'])
-def addWish():
+def addPage():
 	if request.method == 'POST' and 'inputTitle' in request.form and 'inputDescription' in request.form:
 		title = request.form['inputTitle']
 		description = request.form['inputDescription']
-		user = session.get('name')
+		post_id = random.randrange(10)
+		now = datetime.now()
+		_user ='1'
 		if request.form.get('filePath') is None:
 			filepath = ''
 		else:
@@ -106,10 +113,10 @@ def addWish():
 		else:
 			_done = 1
 		cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-		#cursor.execute('INSERT INTO tbl_post VALUES (%s, %s, %s, %s, %s, %s)', (post_id,title, description,_filepath, user,datetime ))
-		cursor.callproc('sp_addWish',(title,description,user,filepath,_done))
+		#cursor.execute('INSERT INTO tbl_post(post_id,post_title, post_description,post_uploaded_path, post_user_id, post_date) VALUES (%s, %s, %s, %s, %s, %s)', (post_id,title, description,filepath,_user, now ))
+		cursor.callproc('sp_addWish',(title,description,_user,filepath,_done))
 		data = cursor.fetchall()
-		if len(data) is 0:
+		if len(data) == 0:
 			mysql.connection.commit()
 			return redirect('/userHome')
         
@@ -120,20 +127,22 @@ def addWish():
 		return render_template('addWish.html',error = 'Unauthorized Access')
 
 @app.route('/showAddPage',methods=['GET','POST'])
-def showAddWish():
+def showAddPage():
 	return render_template('addWish.html')
 
-@app.route('/getPage',methods=['GET','POST'])
-def getWish():
-	if session.get('name'):
-		user = session.get('user')
+@app.route('/getPage',methods=['GET'])
+def getPage():
+	if session.get(user_id):
+		#user = session.get('user')
+		_user = '1'
 		limit = pageLimit
 		offset = request.form['offset']
 		total_records = 0
 		cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-		cursor.callproc('sp_GetWishByUser',(user,limit,offset))
+		cursor.callproc('sp_GetWishByUser',_user,limit,offset,total_records)
 		wishes = cursor.fetchall()
-		cursor.execute('Select @sp_GetWishByUser')
+		#cursor = cursor.execute("SELECT * FROM tbl_wish WHERE wish_user_id =%s", (_user))
+		cursor.execute('Select @sp_GetWishByUser_3')
 		outParam = cursor.fetchall()
 		response = []
 		wishes_dict = []
@@ -150,6 +159,44 @@ def getWish():
 	else:
 		return render_template('error.html',error = 'Unauthorized Access')
 
-        
+@app.route('/getPageById',methods=['GET','POST'])
+def getPageById():
+    try:
+        if session.get('user'):
+            
+            _id = request.form['id']
+            _user = '1'
+            cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+            cursor.execute('SELECT * FROM tbl_wish WHERE wish_id =%s AND wish_user_id =%s',(_id,_user))
+            result = cursor.fetchall()
+            wish = []
+            wish.append({'Id':result[0][0],'Title':result[0][1],'Description':result[0][2],'FilePath':result[0][3],'Done':result[0][5]})
+            return json.dumps(wish)
+        else:
+            return render_template('error.html', error = 'Unauthorized Access')
+    except Exception as e:
+        return render_template('error.html',error = str(e))
+
+@app.route('/getAllWishes')
+def getAllWishes():
+    try:
+        if session.get('user'):
+            cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+            cursor.execute('Select * FROM tbl_wish')
+            result = cursor.fetchall()
+            wishes_dict = []
+            for wish in result:
+                wish_dict = {
+                        'Id': wish[0],
+                        'Title': wish[1],
+                        'Description': wish[2],
+                        'FilePath': wish[3]}
+                wishes_dict.append(wish_dict)		
+            return json.dumps(wishes_dict)
+        else:
+            return render_template('error.html', error = 'Unauthorized Access')
+    except Exception as e:
+        return render_template('error.html',error = str(e))
+
 if __name__ == '__main__':
 	app.run(debug=True)
