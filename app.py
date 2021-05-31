@@ -35,8 +35,8 @@ def login():
 		cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 		cursor.execute('SELECT * FROM user WHERE name = %s AND phonenumber = %s', (username, number,))
 		account = cursor.fetchone()
-		if account:
-			session['loggedin'] = True
+		if account: #wher user_id = token, 
+			session['status'] = 1
 			session['name'] = account['name']
 			session['number'] = account['phonenumber']
 			msg = 'Logged in successfully !'
@@ -64,6 +64,7 @@ def register():
 		username = request.form['username']
 		number = request.form['phonenumber']
 		email = request.form['email']
+		now = datetime.now()
 		cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 		cursor.execute('SELECT * FROM user WHERE name = % s', (username, ))
 		account = cursor.fetchone()
@@ -76,7 +77,7 @@ def register():
 		elif not username or not number or not email:
 			msg = 'Please fill out the form !'
 		else:
-			cursor.execute('INSERT INTO user.user VALUES (%s, %s, %s, %s)', (user,username, number, email, ))
+			cursor.execute('INSERT INTO user(name,phonenumber,email,created_at) VALUES (%s, %s, %s, %s)', (username, number, email,now ))
 			mysql.connection.commit()
 			msg = 'You have successfully registered !'
 	elif request.method == 'POST':
@@ -132,7 +133,6 @@ def showAddPage():
 
 @app.route('/getPage',methods=['GET'])
 def getPage():
-	if session.get(user_id):
 		#user = session.get('user')
 		_user = '1'
 		limit = pageLimit
@@ -156,8 +156,7 @@ def getPage():
 			response.append(wishes_dict)
 			response.append({'total':outParam[0][0]})
 		return json.dumps(response)
-	else:
-		return render_template('error.html',error = 'Unauthorized Access')
+		#return render_template('error.html',error = 'Unauthorized Access')
 
 @app.route('/getPageById',methods=['GET','POST'])
 def getPageById():
