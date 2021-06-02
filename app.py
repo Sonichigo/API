@@ -36,7 +36,7 @@ def login():
 		cursor.execute('SELECT * FROM user WHERE name = %s AND phonenumber = %s', (username, number,))
 		account = cursor.fetchone()
 		if account: #wher user_id = token, 
-			session['status'] = 1
+			session['logged_in'] = True
 			session['name'] = account['name']
 			session['number'] = account['phonenumber']
 			msg = 'Logged in successfully !'

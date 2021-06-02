@@ -1,5 +1,5 @@
 DELIMITER $$
-CREATE PROCEDURE `sp_createUser`(
+CREATE DEFINER=`Asuna1219`@`api12192001` PROCEDURE `sp_createUser`(
     IN p_name VARCHAR(20),
     IN p_username VARCHAR(20),
     IN p_password VARCHAR(20)

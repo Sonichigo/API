@@ -1,11 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash,json
+from flask import Flask, render_template, request, redirect, url_for, flash,json
 from flask_mysqldb import MySQL
 from datetime import datetime
 import MySQLdb.cursors
 import re
 import os
-import uuid
-import random
+import jwt
+import datetime
 
 app = Flask(__name__)
 
@@ -39,7 +39,11 @@ def register():
 		elif not username or not number or not email:
 			msg = 'Please fill out the form !'
 		else:
-			cursor.execute('INSERT INTO user(name,phonenumber,email,created_at) VALUES (%s, %s, %s, %s)', (username, number, email,now ))
+			token=jwt.encode({
+			'username': request.form['username'],
+			'expiration': str(datetime.utcnow()+username)
+			})
+			cursor.execute('INSERT INTO user(name,phonenumber,email,created_at,Token) VALUES (%s, %s, %s, %s,%s)', (username, number, email,now,token.decode('utf-8') ))
 			mysql.connection.commit()
 			msg = 'You have successfully registered !'
 	elif request.method == 'POST':
