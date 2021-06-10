@@ -24,20 +24,25 @@ def index():
 
 @app.route('/login', methods =['GET', 'POST'])
 def login():
-	auth = request.authorization
-	if not auth or not auth.username or not auth.password:
-		return make_response('Could Not verify',401)
+	msg = ''
 	if request.method == 'POST' and 'username' in request.form and 'phonenumber' in request.form:
 		username = request.form['username']
 		number = request.form['phonenumber']
 		cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 		cursor.execute('SELECT * FROM user WHERE name = %s AND phonenumber = %s', (username, number,))
-		session['logged_in'] = True
-		token=jwt.encode({
-			'username': request.form['username'],
-			'expiration': str(datetime.utcnow()+timedelta(seconds=120))
-			})
-		return jsonify({'token':token.decode('utf-8')})
+		account = cursor.fetchone()
+		if account: #wher user_id = token, 
+			session['logged_in'] = True
+			session['name'] = account['name']
+			session['number'] = account['phonenumber']
+			msg = 'Logged in successfully !'
+			return render_template('userHome.html', msg = msg)
+		else:
+			msg = 'Incorrect Name / PhoneNumber!'
+			return render_template('login.html', msg = msg)
+	else:
+		return render_template('login.html')
+
 
 if __name__ == '__main__':
 	app.run(debug=True)
